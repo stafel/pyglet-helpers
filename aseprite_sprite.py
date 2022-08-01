@@ -16,153 +16,150 @@ class AsepriteSprite(pyglet.sprite.Sprite):
     Reaching a non looping animation without a follow up causes issues in pyglet
     """
     
-    def __init__(self, image_path, json_path, posX, posY, drawBatch, startAnimation=None, startLayer=None, center_images_x=True, center_images_y=True):
+    def __init__(self, image_path, json_path, pos_x, pos_y, draw_batch, start_animation=None, start_layer=None, center_images_x=True, center_images_y=True):
 
         # wrong centering can lead to jittering
         self.center_images_x = center_images_x
         self.center_images_y = center_images_y
         
-        self.spritesheetImage = pyglet.resource.image(image_path)
+        self.spritesheet_image = pyglet.resource.image(image_path)
         
-        self.animationSequences = {} # holds animation data itself accessed with {layer}_{animation}
-        self.availableAnimations = [] # available animations of this sprite
-        self.availableLayers = [] # available layers of this sprite
+        self.animation_sequences = {} # holds animation data itself accessed with {layer}_{animation}
+        self.available_animations = [] # available animations of this sprite
+        self.available_layers = [] # available layers of this sprite
         
-        jsonData = None
-        with open(json_path, 'r') as jsonFile:
-            jsonData = json.loads(jsonFile.read())
+        json_data = None
+        with open(json_path, 'r') as json_file:
+            json_data = json.loads(json_file.read())
         
         # aseprite can split the export into layers, check if we have some available
-        for layerData in jsonData['meta']['layers']:
-            if not layerData['name'] in self.availableLayers:
-                self.availableLayers.append(layerData['name'])
-        if len(self.availableLayers) < 1: # we found no layer info, assume the user left everything on default
-            self.availableLayers.append('Layer')
+        for layer_data in json_data['meta']['layers']:
+            if not layer_data['name'] in self.available_layers:
+                self.available_layers.append(layer_data['name'])
+        if len(self.available_layers) < 1: # we found no layer info, assume the user left everything on default
+            self.available_layers.append('Layer')
         
-        individualFrameData = {}
-        if type(jsonData['frames']) == dict: # if it is a dict this was exported with the Hash setting, else with List setting
-            individualFrameData = self.loadFrameHash(jsonData['frames'])
+        individual_frame_data = {}
+        if type(json_data['frames']) == dict: # if it is a dict this was exported with the Hash setting, else with List setting
+            individual_frame_data = self._load_frame_hash(json_data['frames'])
         else:
-            individualFrameData = self.loadFrameList(jsonData['frames'])
+            individual_frame_data = self._load_frame_list(json_data['frames'])
         
-        for animData in jsonData['meta']['frameTags']:
+        for animation_data in json_data['meta']['frameTags']:
             
-            direction = animData['direction']
+            direction = animation_data['direction']
 
-            for layer in self.availableLayers:
+            for layer in self.available_layers:
             
-                framesToAdd = []
+                frames_to_add = []
                 
-                animationSequenceName = f"{layer}_{animData['name']}"
+                animation_sequence_name = f"{layer}_{animation_data['name']}"
                 
-                for imageId in range(int(animData['from']), int(animData['to']) + 1):
-                    correctedImageId = imageId - int(animData['from']) # aseprite id is the index in the list and not the index in the animation itself
+                for image_id in range(int(animation_data['from']), int(animation_data['to']) + 1):
+                    correctedimage_id = image_id - int(animation_data['from']) # aseprite id is the index in the list and not the index in the animation itself
                     
-                    imageIdStr = f"{layer}_{animData['name']}_{correctedImageId}"
+                    image_id_str = f"{layer}_{animation_data['name']}_{correctedimage_id}"
                     
-                    imageDuration = float(individualFrameData[imageIdStr]['duration']) / 1000.0 # ms to seconds
-                    if imageDuration < 0.002: # if duration is one millisecond we assume its none and make the animation nonlooping
-                        imageDuration = None
+                    image_duration = float(individual_frame_data[image_id_str]['duration']) / 1000.0 # ms to seconds
+                    if image_duration < 0.002: # if duration is one millisecond we assume its none and make the animation nonlooping
+                        image_duration = None
                         
-                    framesToAdd.append(pyglet.image.AnimationFrame(individualFrameData[imageIdStr]['region'], duration=imageDuration))           
+                    frames_to_add.append(pyglet.image.AnimationFrame(individual_frame_data[image_id_str]['region'], duration=image_duration))           
                 
                 if direction == 'reverse':
-                    framesToAdd.reverse()
+                    frames_to_add.reverse()
                 elif direction == 'pingpong':
-                    framesToAdd = framesToAdd + framesToAdd.reverse()
+                    frames_to_add = frames_to_add + frames_to_add.reverse()
                 
-                self.animationSequences[animationSequenceName] = pyglet.image.Animation(frames=framesToAdd)
+                self.animation_sequences[animation_sequence_name] = pyglet.image.Animation(frames=frames_to_add)
                 
-                if not animData['name'] in self.availableAnimations:
-                    self.availableAnimations.append(animData['name'])
+                if not animation_data['name'] in self.available_animations:
+                    self.available_animations.append(animation_data['name'])
         
-        if not startAnimation:
-            startAnimation = self.availableAnimations[0]
+        if not start_animation:
+            start_animation = self.available_animations[0]
             
-        if not startLayer:
-            startLayer = self.availableLayers[0]
+        if not start_layer:
+            start_layer = self.available_layers[0]
         
-        self.currentLayer = startLayer
-        self.currentAnimation = startAnimation
+        self.current_layer = start_layer
+        self.current_animation = start_animation
         
-        self.sheduledAnimations = []
-        super().__init__(self.animationSequences[self.getAnimationSequenceName(self.currentLayer, self.currentAnimation)], x=posX, y=posY, batch=drawBatch)
-        self.push_handlers(on_animation_end=self.loadNextAnimation)
+        self.sheduled_animations = []
+        super().__init__(self.animation_sequences[self._get_animation_sequence_name(self.current_layer, self.current_animation)], x=pos_x, y=pos_y, batch=draw_batch)
+        self.push_handlers(on_animation_end=self._load_next_animation)
         
-    def loadFrame(self, imageMetaData):
+    def _load_frame(self, image_meta_data):
         """ this cuts a region for a single frame from the aseprite meta frame data """
         
-        imgData = imageMetaData['frame']
+        image_data = image_meta_data['frame']
         
-        recalculatedY = self.spritesheetImage.height - imgData['y'] - imgData['h']
+        recalculated_y = self.spritesheet_image.height - image_data['y'] - image_data['h']
         
-        convertedRegionData = {'region': self.spritesheetImage.get_region(x=imgData['x'], y=recalculatedY, width=imgData['w'], height=imgData['h']), 'duration': imageMetaData['duration']}
+        converted_region_data = {'region': self.spritesheet_image.get_region(x=image_data['x'], y=recalculated_y, width=image_data['w'], height=image_data['h']), 'duration': image_meta_data['duration']}
         
         if self.center_images_x:
-            convertedRegionData['region'].anchor_x = convertedRegionData['region'].width // 2
+            converted_region_data['region'].anchor_x = converted_region_data['region'].width // 2
         if self.center_images_y:
-            convertedRegionData['region'].anchor_y = convertedRegionData['region'].height // 2
+            converted_region_data['region'].anchor_y = converted_region_data['region'].height // 2
             
-        return convertedRegionData
+        return converted_region_data
         
-    def loadFrameList(self, frameMetaList):
+    def _load_frame_list(self, frame_meta_list):
         """ converts the aseprite frames list into a dict with imageRegions """
         
-        individualImages = {}
-        for imgDataMeta in frameMetaList:
-            imgKeyStr = imgDataMeta['filename']
-            individualImages[imgKeyStr] = self.loadFrame(imgDataMeta)
+        individual_images = {}
+        for image_data_meta in frame_meta_list:
+            image_key_str = image_data_meta['filename']
+            individual_images[image_key_str] = self._load_frame(image_data_meta)
             
-        return individualImages
+        return individual_images
     
-    def loadFrameHash(self, frameMetaHashDict):
+    def _load_frame_hash(self, frame_meta_hash_dict):
         """ converts the aseprite frames hash dict into a dict with imageRegions """
         
-        individualImages = {}
-        for imgDataMetaKey in frameMetaHashDict:
-            imgKeyStr = imgDataMetaKey
-            individualImages[imgKeyStr] = self.loadFrame(frameMetaHashDict[imgDataMetaKey])
+        individual_images = {}
+        for image_data_metaKey in frame_meta_hash_dict:
+            image_key_str = image_data_metaKey
+            individual_images[image_key_str] = self._load_frame(frame_meta_hash_dict[image_data_metaKey])
             
-        return individualImages        
+        return individual_images        
         
-    def sheduleAnimation(self, animationName, layerName=None):
-        if not self.currentAnimation: # we currently have no animation, shedule immediatly
-            self.setAnimation(layerName=layerName, animationName=animationName)
+    def shedule_animation(self, animation_name, layer_name=None):
+        if not self.current_animation: # we currently have no animation, shedule immediatly
+            self.set_animation(layer_name=layer_name, animation_name=animation_name)
         else:
-            self.sheduledAnimations.append((layerName, animationName))
+            self.sheduled_animations.append((layer_name, animation_name))
     
-    def loadNextAnimation(self):
-        if len(self.sheduledAnimations) > 0:
-            layerName, animationName = self.sheduledAnimations.pop(0)
+    def _load_next_animation(self):
+        if len(self.sheduled_animations) > 0:
+            layer_name, animation_name = self.sheduled_animations.pop(0)
             
-            if not layerName:
-                layerName = self.currentLayer            
+            if not layer_name:
+                layer_name = self.current_layer            
             
-            self.setAnimation(layerName=layerName, animationName=animationName)
+            self.set_animation(layer_name=layer_name, animation_name=animation_name)
         else:
-            if self.currentAnimation:
-                if not self.animationSequences[self.getAnimationSequenceName(self.currentLayer, self.currentAnimation)].frames[-1].duration: # we stopped the last animation and have no backup ready
-                    raise NotImplementedError(f"Animation '{self.currentLayer}_{self.currentAnimation}' is not looping, shedule another one before the first one stops")
+            if self.current_animation:
+                if not self.animation_sequences[self._get_animation_sequence_name(self.current_layer, self.current_animation)].frames[-1].duration: # we stopped the last animation and have no backup ready
+                    raise NotImplementedError(f"Animation '{self.current_layer}_{self.current_animation}' is not looping, shedule another one before the first one stops")
         
-    def getAnimationSequenceName(self, layerName, animationName):
-        return f"{layerName}_{animationName}"
+    def _get_animation_sequence_name(self, layer_name, animation_name):
+        return f"{layer_name}_{animation_name}"
         
-    def setAnimation(self, animationName=None, layerName=None, forceReset=False):
-        if not layerName:
-            layerName = self.currentLayer
+    def set_animation(self, animation_name=None, layer_name=None, force_reset=False):
+        if not layer_name:
+            layer_name = self.current_layer
         
-        if not animationName:
-            animationName = self.currentAnimation       
+        if not animation_name:
+            animation_name = self.current_animation       
         
-        if forceReset or self.currentAnimation != animationName or self.currentLayer != layerName:
-            self.image = self.animationSequences[self.getAnimationSequenceName(layerName, animationName)]
-            self.currentAnimation = animationName
-            self.currentLayer = layerName
+        if force_reset or self.current_animation != animation_name or self.current_layer != layer_name:
+            self.image = self.animation_sequences[self._get_animation_sequence_name(layer_name, animation_name)]
+            self.current_animation = animation_name
+            self.current_layer = layer_name
 
-    def getDistance(self, position):
-        return abs(position[0] - self.position[0])
-
-    def getPosition(self):
+    def get_position(self):
         x = self.position[0]
         y = self.position[1]
         
@@ -174,35 +171,28 @@ class AsepriteSprite(pyglet.sprite.Sprite):
         
         return (x,y)
 
-    def getSize(self):
+    def get_size(self):
         return (self.width, self.height)
 
-    def getMidpoint(self):
-        pos = self.getPosition()
-        size = self.getSize()
+    def get_midpoint(self):
+        pos = self.get_position()
+        size = self.get_size()
         
         return (pos[0] + size[0]//2, pos[1] + size[1]//2)
-
-    def getIconpoint(self):
-        """ position to spawn icons in"""
-        pos = self.getMidpoint()
-        size = self.getSize()
-
-        return (pos[0], pos[1] + size[1] + size[1]//5)
             
     def move(self, deltaX, deltaY):
         self.position = (self.position[0] + deltaX, self.position[1] + deltaY)
         
-    def setPosition(self, posX, posY):
-        self.update(x=posX, y=posY)
+    def set_position(self, pos_x, pos_y):
+        self.update(x=pos_x, y=pos_y)
         
-    def setBatch(self, batch):
+    def set_batch(self, batch):
         self.batch = batch
 
 if __name__ == '__main__':
     window = pyglet.window.Window(600, 300)
     batch = pyglet.graphics.Batch()
-    test_token = AsepriteSprite('res/test/token.png', 'res/test/token.json', 300, 160, batch, startAnimation='idle')
+    test_token = AsepriteSprite('res/test/token.png', 'res/test/token.json', 300, 160, batch, start_animation='idle')
 
     @window.event
     def on_draw():
@@ -210,9 +200,9 @@ if __name__ == '__main__':
         batch.draw()
 
     @window.event
-    def on_key_release(symbol, modifiers):
+    def on_key_press(symbol, modifiers):
         if symbol == pyglet.window.key.ENTER:
-            test_token.setAnimation('derp', forceReset=True)
-            test_token.sheduleAnimation('idle')
+            test_token.set_animation('derp')
+            test_token.shedule_animation('idle')
 
     pyglet.app.run()
