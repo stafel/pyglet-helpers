@@ -189,6 +189,16 @@ class AsepriteSprite(pyglet.sprite.Sprite):
     def set_batch(self, batch):
         self.batch = batch
 
+    def get_aabb(self):
+        """
+        Axis aligned bounding box
+        (min_x, min_y, max_x, max_y)
+        """
+
+        x, y = self.get_position()
+        w, h = self.get_size()
+        return (x, y, x + w, y + h)
+
 if __name__ == '__main__':
     window = pyglet.window.Window(600, 300)
     batch = pyglet.graphics.Batch()
