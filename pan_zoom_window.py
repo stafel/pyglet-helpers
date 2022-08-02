@@ -18,14 +18,14 @@ class PanZoomWindow(pyglet.window.Window):
         self.zoomed_width  = self.width
         self.zoomed_height = self.height
 
-    def draw_pan_zoom(self):
+    def _draw_pan_zoom(self):
         """
         Use to draw what must be panned and zoomed
         """
 
         pass
 
-    def draw_static(self):
+    def _draw_static(self):
         """
         Use to draw what remains static afterwards like a hud gui
         """
@@ -50,7 +50,7 @@ class PanZoomWindow(pyglet.window.Window):
         # Set orthographic projection matrix
         glOrtho( self.left, self.right, self.bottom, self.top, 1, -1 )
 
-        self.draw_pan_zoom()
+        self._draw_pan_zoom()
 
         # Remove default modelview matrix
         glPopMatrix()
@@ -67,7 +67,7 @@ class PanZoomWindow(pyglet.window.Window):
 
         glOrtho( 0, self.width, 0, self.height, 1, -1 )
 
-        self.draw_static()
+        self._draw_static()
 
         glPopMatrix()
 
@@ -79,7 +79,7 @@ class PanZoomWindow(pyglet.window.Window):
         world_y = self.bottom + screen_y*self.zoomed_height
         return (world_x, world_y)
 
-    def init_gl(self, width, height):
+    def _init_gl(self, width, height):
         # Set clear color
         glClearColor(0/255, 0/255, 0/255, 0/255)
 
@@ -96,20 +96,21 @@ class PanZoomWindow(pyglet.window.Window):
         glViewport( 0, 0, width, height )
 
     def on_resize(self, width, height):
-        # Set window values
-        #self.width  = width
-        #self.height = height
         # Initialize OpenGL context
-        self.init_gl(width, height)
+        self._init_gl(width, height)
 
-    def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
+    def _drag_camera(self, dx, dy):
         # Move camera
         self.left   -= dx*self.zoom_level
         self.right  -= dx*self.zoom_level
         self.bottom -= dy*self.zoom_level
         self.top    -= dy*self.zoom_level
 
-    def on_mouse_scroll(self, x, y, dx, dy):
+    def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
+        if buttons == pyglet.window.mouse.MIDDLE:
+            self._drag_camera(dx, dy)
+
+    def _zoom_camera(self, x, y, dx, dy):
         # Get scale factor
         f = self.zoom_in_factor if dy > 0 else self.zoom_out_factor if dy < 0 else 1
         # If zoom_level is in the proper range
@@ -131,6 +132,9 @@ class PanZoomWindow(pyglet.window.Window):
             self.bottom = mouse_y_in_world - mouse_y*self.zoomed_height
             self.top    = mouse_y_in_world + (1 - mouse_y)*self.zoomed_height
 
+    def on_mouse_scroll(self, x, y, dx, dy):
+        self._zoom_camera(x, y, dx, dy)
+
 if __name__ == '__main__':
 
 
@@ -146,10 +150,10 @@ if __name__ == '__main__':
             self.static_icon = pyglet.shapes.Rectangle(500, 300, 100, 100, color=(0, 0, 255), batch=self.static_batch)
             self.static_text = pyglet.text.Label('Static', font_name='Times New Roman', font_size=36, x=490, y=250, batch=self.static_batch)
 
-        def draw_pan_zoom(self):
+        def _draw_pan_zoom(self):
             self.zoomed_batch.draw()
 
-        def draw_static(self):
+        def _draw_static(self):
             self.static_batch.draw()
 
     test_window = TestWindow(800, 600)
