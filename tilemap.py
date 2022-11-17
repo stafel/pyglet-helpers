@@ -29,6 +29,7 @@ class Tilemap():
 
 if __name__ == '__main__':
     import os.path
+    import random
     from pan_zoom_window import PanZoomWindow
     from mapgen.drunkwalk import DrunkWalk
 
@@ -47,10 +48,21 @@ if __name__ == '__main__':
         def beautify_mapdata(self, map_data):
             for y in range(len(map_data)):
                 for x in range(len(map_data[y])):
-                    if map_data[y][x] == 0:
-                        map_data[y][x] = -1
-                    if map_data[y][x] == 2:
-                        map_data[y][x] = 16
+                    match map_data[y][x]:
+                        case 0:
+                            map_data[y][x] = -1
+                        case 1:
+                            match random.randint(1, 6):
+                                case 1 | 2:
+                                    map_data[y][x] = 1
+                                case 3:
+                                    map_data[y][x] = 0
+                                case 4 | 5:
+                                    map_data[y][x] = 2
+                                case 6:
+                                    map_data[y][x] = 5
+                        case 2:
+                            map_data[y][x] = 16
 
             return map_data
 
