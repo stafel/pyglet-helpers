@@ -100,11 +100,27 @@ class PanZoomWindow(pyglet.window.Window):
         self._init_gl(width, height)
 
     def _drag_camera(self, dx, dy):
-        # Move camera
+        """
+        Move camera backwards (a dragging motion) relative to zoom level
+        """
+
         self.left   -= dx*self.zoom_level
         self.right  -= dx*self.zoom_level
         self.bottom -= dy*self.zoom_level
         self.top    -= dy*self.zoom_level
+
+    def focus(self, x, y):
+        """
+        Focuses camera onto absolute point
+        """
+
+        half_width = self.width//2
+        half_height = self.height//2
+
+        self.left   = x - half_width
+        self.right  = x + half_width
+        self.bottom = y - half_height
+        self.top    = y + half_height
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         if buttons == pyglet.window.mouse.MIDDLE:
@@ -156,5 +172,5 @@ if __name__ == '__main__':
         def _draw_static(self):
             self.static_batch.draw()
 
-    test_window = TestWindow(800, 600)
+    test_window = TestWindow(800, 600, vsync=False)
     pyglet.app.run()
