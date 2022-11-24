@@ -19,6 +19,9 @@ class Tilemap():
     def set_map_data(self, map_data):
         self._map_data = map_data
 
+    def world_pos_to_tile_pos(self, x, y):
+        return (int(x//self._tile_dimension[0]), int(y//self._tile_dimension[1]))
+
     def generate_drawables(self, batch: pyglet.graphics.Batch):
         self._sprites = []
 
