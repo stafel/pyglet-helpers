@@ -1,5 +1,6 @@
 import pyglet
-from pyglet.gl import *
+from pyglet import math
+from pyglet.gl import Config
 
 class PanZoomWindow(pyglet.window.Window):
     def __init__(self, width, height, zoom_in_factor=1.2, *args, **kwargs):
@@ -33,43 +34,15 @@ class PanZoomWindow(pyglet.window.Window):
         pass
 
     def on_draw(self):
-        
-        # Initialize Projection matrix
-        glMatrixMode( GL_PROJECTION )
-        glLoadIdentity()
+        self.clear()
 
-        # Initialize Modelview matrix
-        glMatrixMode( GL_MODELVIEW )
-        glLoadIdentity()
-        # Save the default modelview matrix
-        glPushMatrix()
-
-        # Clear window with ClearColor
-        glClear( GL_COLOR_BUFFER_BIT )
-
-        # Set orthographic projection matrix
-        glOrtho( self.left, self.right, self.bottom, self.top, 1, -1 )
+        self.projection = math.Mat4.orthogonal_projection(self.left, self.right, self.bottom, self.top, 1, -1)
 
         self._draw_pan_zoom()
 
-        # Remove default modelview matrix
-        glPopMatrix()
-
-        # Initialize Projection matrix
-        glMatrixMode( GL_PROJECTION )
-        glLoadIdentity()
-
-        # Initialize Modelview matrix
-        glMatrixMode( GL_MODELVIEW )
-        glLoadIdentity()
-        # Save the default modelview matrix
-        glPushMatrix()
-
-        glOrtho( 0, self.width, 0, self.height, 1, -1 )
+        self.projection = math.Mat4.orthogonal_projection(0, self.width, 0, self.height, 1, -1)
 
         self._draw_static()
-
-        glPopMatrix()
 
     def screen_pos_to_world_pos(self, screen_x, screen_y):
         screen_x = screen_x/self.width
@@ -79,32 +52,31 @@ class PanZoomWindow(pyglet.window.Window):
         world_y = self.bottom + screen_y*self.zoomed_height
         return (world_x, world_y)
 
-    def _init_gl(self, width, height):
-        # Set clear color
-        glClearColor(0/255, 0/255, 0/255, 0/255)
-
-        # Set antialiasing
-        glEnable( GL_LINE_SMOOTH )
-        glEnable( GL_POLYGON_SMOOTH )
-        glHint( GL_LINE_SMOOTH_HINT, GL_NICEST )
-
-        # Set alpha blending
-        glEnable( GL_BLEND )
-        glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA )
-
-        # Set viewport
-        glViewport( 0, 0, width, height )
-
     def on_resize(self, width, height):
-        # Initialize OpenGL context
-        self._init_gl(width, height)
+        pass
 
     def _drag_camera(self, dx, dy):
-        # Move camera
+        """
+        Move camera backwards (a dragging motion) relative to zoom level
+        """
+
         self.left   -= dx*self.zoom_level
         self.right  -= dx*self.zoom_level
         self.bottom -= dy*self.zoom_level
         self.top    -= dy*self.zoom_level
+
+    def focus(self, x, y):
+        """
+        Focuses camera onto absolute point
+        """
+
+        half_width = self.width//2
+        half_height = self.height//2
+
+        self.left   = x - half_width
+        self.right  = x + half_width
+        self.bottom = y - half_height
+        self.top    = y + half_height
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         if buttons == pyglet.window.mouse.MIDDLE:
@@ -156,5 +128,5 @@ if __name__ == '__main__':
         def _draw_static(self):
             self.static_batch.draw()
 
-    test_window = TestWindow(800, 600)
+    test_window = TestWindow(800, 600, vsync=False)
     pyglet.app.run()
