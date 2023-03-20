@@ -309,8 +309,8 @@ class AsepriteSprite(pyglet.sprite.Sprite):
         """
         Move sprite deltaX and deltaY units
         """
-
-        self.position = (self.position[0] + deltaX, self.position[1] + deltaY)
+        
+        self.update(x=self.position[0] + deltaX, y=self.position[1] + deltaY)
 
     def set_position(self, pos_x, pos_y):
         """
