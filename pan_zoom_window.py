@@ -128,6 +128,19 @@ class PanZoomWindow(pyglet.window.Window):
         self.bottom = y - half_height
         self.top = y + half_height
 
+    def focus(self, x, y):
+        """
+        Focuses camera onto absolute point
+        """
+
+        half_width = self.width // 2
+        half_height = self.height // 2
+
+        self.left = x - half_width
+        self.right = x + half_width
+        self.bottom = y - half_height
+        self.top = y + half_height
+
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         """
         Middle mouse drag: window drag

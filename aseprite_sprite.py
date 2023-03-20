@@ -24,6 +24,7 @@ __doc__ = """
 AsepriteSprite for easy usage of aseprite exports
 """
 
+
 class AsepriteSprite(pyglet.sprite.Sprite):
     """Reads animation data from aseprite json export
 
